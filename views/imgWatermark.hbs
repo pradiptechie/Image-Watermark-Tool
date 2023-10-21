@@ -101,8 +101,8 @@
                 </th>
                 <th>
                     <label for="watermarkType">Choose Watermark Type: </label>
-                    <input type="radio" name="watermarkType" value="image" id="watermarkImage" checked>Image
-                    <input type="radio" name="watermarkType" value="text" id="watermarkText">Text
+                    <input type="radio" name="watermarkType" value="image" id="selectImage" checked>Image
+                    <input type="radio" name="watermarkType" value="text" id="selectText">Text
                 </th>
             </tr>
             <tr>
@@ -110,12 +110,12 @@
                     <input type="file" name="mainImage" accept="image/*">
                 </td>
                 <td>
-                    <div id="imageInput">
+                    <div id="watermarkImage">
                         <input type="file" name="watermarkImage" accept="image/*">
                     </div>
 
-                    <div id="textInput" style="display: none;">
-                        <input type="text" name="textWatermark" placeholder="Enter WaterMark Texts">
+                    <div id="watermarkText" style="display: none;">
+                        <input type="text" name="watermarkText" placeholder="Enter WaterMark Texts">
                     </div>
                 </td>
             </tr>
@@ -133,25 +133,21 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    const selectImage = document.getElementById('selectImage');
+    const selectText = document.getElementById('selectText');
     const watermarkImage = document.getElementById('watermarkImage');
     const watermarkText = document.getElementById('watermarkText');
-    const imageInput = document.getElementById('imageInput');
-    const textInput = document.getElementById('textInput');
 
-    watermarkImage.addEventListener('change', () => {
-        imageInput.style.display = 'block';
-        textInput.style.display = 'none';
-        // Set the "required" attribute for imageInput and remove it for textInput
-        imageInput.setAttribute('required', 'required');
-        textInput.removeAttribute('required');
+    selectImage.addEventListener('change', () => {
+        watermarkImage.style.display = 'block';
+        watermarkText.style.display = 'none';
+        watermarkText.querySelector('input[type="text"]').value = '';
     });
 
-    watermarkText.addEventListener('change', () => {
-        imageInput.style.display = 'none';
-        textInput.style.display = 'block';
-        // Set the "required" attribute for textInput and remove it for imageInput
-        textInput.setAttribute('required', 'required');
-        imageInput.removeAttribute('required');
+    selectText.addEventListener('change', () => {
+        watermarkText.style.display = 'block';
+        watermarkImage.style.display = 'none';
+        watermarkImage.querySelector('input[type="file"]').value = '';
     });
 
     //-----------------------------------------------------------
@@ -159,39 +155,42 @@ document.addEventListener('DOMContentLoaded', () => {
     const preview = document.getElementById('result');
     const download = document.getElementById('download-link');
 
-    form.addEventListener('submit',(e)=>{
+     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        // Check if the form is valid (i.e., required fields are filled)
-        if (form.checkValidity()) {
-            // Form is valid, proceed with form submission
-            console.log('Form is valid. Submitting...');
-        } else {
-            // Form is not valid, show an error message or handle it accordingly
-            console.log('Form is not valid. Please fill in all required fields.');
-        }
 
         const formData = new FormData(form);
-        fetch('/', {
-            method: 'POST',
-            body:formData,
-        })
-        .then((response) => response.text()) // Convert the response to text
-        .then((dataUrl) => {
-        // Create an image element and set its src attribute to the data URL
-        const imageElement = document.createElement('img');
-        imageElement.src = dataUrl;
+        try {
+            const response = await fetch('/', {
+                method: 'POST',
+                body: formData,
+            });
 
-        // Clear the result container and append the image element
-        resultContainer.innerHTML = '';
-        resultContainer.appendChild(imageElement);
+            if (response.ok) {
+                if (response.headers.get('Content-Type').startsWith('image/')) {
+                    const processedImage = await response.blob();
+                    const imageUrl = URL.createObjectURL(processedImage);
 
-        // Set the download link's href and display it
-        downloadLink.href = dataUrl;
-        downloadLink.style.display = 'block';
-        })
-        .catch((error) => {
-        console.error('Error:', error);
-        });
+                    // Create an image element to display the processed image
+                    const image = document.createElement('img');
+                    image.src = imageUrl;
+
+                    // Clear the previous content in the "result" div
+                    preview.innerHTML = '';
+                    preview.appendChild(image);
+
+                    // Show the download link
+                    download.style.display = 'block';
+                    download.href = imageUrl;
+                } else {
+                    preview.innerHTML = 'Image processing error';
+                }
+            } else {
+                preview.innerHTML = 'Server error';
+            }
+        } catch (error) {
+            console.error('Fetch error:', error);
+            preview.innerHTML = 'Fetch error';
+        }
     });
 });
 
