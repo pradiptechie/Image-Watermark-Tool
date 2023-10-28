@@ -1,6 +1,6 @@
 const express = require('express')
 const app = express()
-const port = 3000
+const port = 3500
 
 const bodyParser = require ('body-parser');
 app.use(bodyParser.urlencoded({extended:true}));
@@ -38,6 +38,8 @@ app.post("/", upload.any(), (req, res) => {
 
     if (watermarkType === 'image' && watermarkImage) {
         const watermarkBuffer = watermarkImage.buffer;
+    console.log('Image'.watermarkBuffer);
+
 
         sharp(mainImageBuffer)
             .composite([
